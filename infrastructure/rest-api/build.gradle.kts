@@ -30,8 +30,8 @@ tasks.named<GenerateTask>("openApiGenerate") {
     generatorName.set("spring")
     inputSpec.set("$projectDir/src/main/resources/openapi/openapi.yaml")
     outputDir.set(openApiGeneratedDir.get().asFile.absolutePath)
-    apiPackage.set("com.company.service.restapi.generated.api")
-    modelPackage.set("com.company.service.restapi.generated.model")
+    apiPackage.set("com.trading.catalog.restapi.generated.api")
+    modelPackage.set("com.trading.catalog.restapi.generated.model")
     modelNameSuffix.set("WebDto")
     configOptions.set(
         mapOf(

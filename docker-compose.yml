@@ -3,9 +3,9 @@ services:
     image: postgres:17.4
     container_name: ${APP_NAME:-app}-postgres
     environment:
-      POSTGRES_DB: ${APP_DB_NAME:-appdb}
-      POSTGRES_USER: ${APP_DB_USERNAME:-appuser}
-      POSTGRES_PASSWORD: ${APP_DB_PASSWORD:-apppass}
+      POSTGRES_DB: ${APP_DB_NAME:-marketcatalogdb}
+      POSTGRES_USER: ${APP_DB_USERNAME:-marketcataloguser}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD:-marketcatalogpass}
     ports:
       - "5432:5432"
 

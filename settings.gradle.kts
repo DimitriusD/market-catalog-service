@@ -1,4 +1,4 @@
-rootProject.name = "hexagonal-service-template"
+rootProject.name = "market-catalog-service"
 
 pluginManagement {
     repositories {
