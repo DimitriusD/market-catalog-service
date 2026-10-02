@@ -4,21 +4,21 @@ import com.trading.catalog.application.domain.exception.ValidationException;
 
 import java.util.Locale;
 
-public record InstrumentSearch(String exchangeCode,
-                               String marketCode,
-                               String q,
-                               String baseAssetCode,
-                               String quoteAssetCode,
-                               Integer limit,
-                               String cursor) {
-    public InstrumentSearch {
+public record InstrumentSearchQuery(String exchangeCode,
+                                    String marketCode,
+                                    String searchText,
+                                    String baseAssetCode,
+                                    String quoteAssetCode,
+                                    Integer limit,
+                                    String cursor) {
+    public InstrumentSearchQuery {
         exchangeCode = code(exchangeCode, "exchangeCode", true);
         marketCode = code(marketCode, "marketCode", true);
         baseAssetCode = code(baseAssetCode, "baseAssetCode", false);
         quoteAssetCode = code(quoteAssetCode, "quoteAssetCode", false);
-        q = q == null ? "" : q.strip().toLowerCase(Locale.ROOT);
-        if (q.length() > 100) {
-            throw new ValidationException("q must be at most 100 characters");
+        searchText = searchText == null ? "" : searchText.strip().toLowerCase(Locale.ROOT);
+        if (searchText.length() > 100) {
+            throw new ValidationException("searchText must be at most 100 characters");
         }
         limit = limit == null ? 50 : limit;
         if (limit < 1 || limit > 200) {

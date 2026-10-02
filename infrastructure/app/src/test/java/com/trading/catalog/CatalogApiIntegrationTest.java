@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -15,6 +16,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -69,7 +71,7 @@ class CatalogApiIntegrationTest {
 
     @Test
     void instrumentSearchReturnsSelectionFields() {
-        JsonNode page = get("/api/v1/instruments?exchangeCode=BINANCE&marketCode=SPOT&q=BTC", HttpStatus.OK);
+        JsonNode page = get("/api/v1/instruments?exchangeCode=BINANCE&marketCode=SPOT&searchText=BTC", HttpStatus.OK);
 
         JsonNode btc = page.at("/items/0");
         assertEquals(1, page.get("items").size());
@@ -133,6 +135,15 @@ class CatalogApiIntegrationTest {
     void removedEndpointsAnswer404() {
         get("/api/v1/markets", HttpStatus.NOT_FOUND);
         get("/api/v1/markets/BINANCE/SPOT/instruments", HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void unsupportedMethodAnswers405() {
+        ResponseEntity<JsonNode> response = rest.postForEntity("/api/v1/catalog", null, JsonNode.class);
+
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, response.getStatusCode());
+        assertEquals(Set.of(HttpMethod.GET), response.getHeaders().getAllow());
+        assertEquals("METHOD_NOT_ALLOWED", response.getBody().get("error").asString());
     }
 
     private JsonNode get(String url, HttpStatus expectedStatus) {

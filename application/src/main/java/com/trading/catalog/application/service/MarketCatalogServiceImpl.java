@@ -5,7 +5,7 @@ import com.trading.catalog.application.domain.exception.ValidationException;
 import com.trading.catalog.application.domain.model.channel.MarketChannel;
 import com.trading.catalog.application.domain.model.instrument.Instrument;
 import com.trading.catalog.application.domain.model.instrument.InstrumentPage;
-import com.trading.catalog.application.domain.model.instrument.InstrumentSearch;
+import com.trading.catalog.application.domain.model.instrument.InstrumentSearchQuery;
 import com.trading.catalog.application.domain.model.market.Exchange;
 import com.trading.catalog.application.port.input.MarketCatalogService;
 import com.trading.catalog.application.port.output.CatalogStorePort;
@@ -24,7 +24,7 @@ public class MarketCatalogServiceImpl implements MarketCatalogService {
     }
 
     @Override
-    public InstrumentPage searchInstruments(InstrumentSearch search) {
+    public InstrumentPage searchInstruments(InstrumentSearchQuery search) {
         return catalogStore.searchInstruments(search)
                 .orElseThrow(() -> new NotFoundException(
                         "Market not found: " + search.exchangeCode() + "/" + search.marketCode()));

@@ -46,7 +46,7 @@ paths:
           schema:
             type: string
             example: "SPOT"
-        - name: q
+        - name: searchText
           in: query
           required: false
           description: Case-insensitive substring of the exchange symbol, display symbol or base asset name.

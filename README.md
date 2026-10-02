@@ -13,10 +13,10 @@ Hexagonal layout (ports & adapters), Gradle multi-module.
 | Module | Purpose |
 |--------|---------|
 | `application` | Domain models, `MarketCatalogService` / `CatalogStorePort`, `MarketCatalogServiceImpl`. No framework dependencies. |
-| `infrastructure/app` | Spring Boot entrypoint and wiring (`InfrastructureConfig`). |
+| `infrastructure/app` | Spring Boot entrypoint and wiring (`ApplicationServiceConfig`). |
 | `infrastructure/rest-api` | Controllers and MapStruct mappers over interfaces generated from the contract. |
 | `infrastructure/rest-api/market-catalog-service-open-api` | The OpenAPI contract, published as `com.trading.contracts:market-catalog-service-openapi`. |
-| `infrastructure/jdbc-storage-adapter` | PostgreSQL storage via Spring Data JDBC (`CatalogStore`). Flyway migrations. |
+| `infrastructure/jdbc-storage-adapter` | PostgreSQL storage via Spring Data JDBC (`JdbcCatalogStore`). Flyway migrations. |
 
 ## Channel domain model
 
@@ -30,12 +30,23 @@ The storage adapter assembles this model using the same mapping for both reads. 
 into the existing UI and control-service DTOs. `ChannelCapability` is an API representation, not a separate
 domain model. A disabled default is omitted from the available options and produces `defaultValue: null`.
 
+## REST adapter layout
+
+REST classes live under `com.trading.catalog.restapi`:
+
+- `controller/MarketCatalogController`: the catalog tree and channel capabilities for a market.
+- `controller/InstrumentController`: instrument search and lookup by ID.
+- `mapper`: mapping domain models to API responses.
+- `advice`: HTTP exception handling.
+- `config`: REST serialization configuration.
+- `generated`: interfaces and models generated from OpenAPI in the build directory.
+
 ## API
 
 | Method | Path | Consumer |
 |--------|------|----------|
 | `GET` | `/api/v1/catalog` | UI: exchanges → markets (`code` + `marketType`) → channels → param rules (`required`, `defaultValue`, `values`) |
-| `GET` | `/api/v1/instruments?exchangeCode&marketCode&q&baseAssetCode&quoteAssetCode&limit&cursor` | UI: instrument picker; `limit` 1–200 (default 50), pass `nextCursor` back as `cursor` |
+| `GET` | `/api/v1/instruments?exchangeCode&marketCode&searchText&baseAssetCode&quoteAssetCode&limit&cursor` | UI: instrument picker; `limit` 1–200 (default 50), pass `nextCursor` back as `cursor` |
 | `GET` | `/api/v1/instruments/{instrumentId}` | control-service: resolve the instrument of a new stream |
 | `GET` | `/api/v1/markets/{exchangeCode}/{marketCode}/channel-capabilities` | control-service: validate stream channels/params |
 

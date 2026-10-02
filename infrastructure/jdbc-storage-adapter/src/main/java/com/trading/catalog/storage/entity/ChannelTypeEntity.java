@@ -16,27 +16,15 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("exchange_market_channel_param_allowed_values")
-public class ExchangeMarketChannelParamAllowedValueEntity {
+@Table("channels")
+public class ChannelTypeEntity {
 
     @Id
     private Long id;
 
-    @Column("channel_param_id")
-    private Long channelParamId;
-
-    private String value;
-
-    @Column("display_name")
-    private String displayName;
-
-    @Column("sort_order")
-    private Integer sortOrder;
-
-    @Column("is_default")
-    private boolean isDefault;
-
-    private boolean enabled;
+    private String code;
+    private String name;
+    private String description;
 
     @CreatedDate
     @Column("created_at")

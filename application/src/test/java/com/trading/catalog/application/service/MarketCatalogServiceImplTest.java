@@ -6,7 +6,7 @@ import com.trading.catalog.application.domain.model.Asset;
 import com.trading.catalog.application.domain.model.channel.MarketChannel;
 import com.trading.catalog.application.domain.model.instrument.Instrument;
 import com.trading.catalog.application.domain.model.instrument.InstrumentPage;
-import com.trading.catalog.application.domain.model.instrument.InstrumentSearch;
+import com.trading.catalog.application.domain.model.instrument.InstrumentSearchQuery;
 import com.trading.catalog.application.domain.model.market.Exchange;
 import com.trading.catalog.application.port.output.CatalogStorePort;
 import org.junit.jupiter.api.Test;
@@ -68,12 +68,13 @@ class MarketCatalogServiceImplTest {
 
     @Test
     void throwsNotFoundWhenMarketIsNotAvailable() {
-        var ex = assertThrows(NotFoundException.class, () -> service.searchInstruments(search()));
+        var query = search();
+        var ex = assertThrows(NotFoundException.class, () -> service.searchInstruments(query));
         assertEquals("Market not found: BINANCE/SPOT", ex.getMessage());
     }
 
-    private static InstrumentSearch search() {
-        return new InstrumentSearch("binance", "spot", null, null, null, null, null);
+    private static InstrumentSearchQuery search() {
+        return new InstrumentSearchQuery("binance", "spot", null, null, null, null, null);
     }
 
     private static final class FakeCatalogStore implements CatalogStorePort {
@@ -86,7 +87,7 @@ class MarketCatalogServiceImplTest {
         }
 
         @Override
-        public Optional<InstrumentPage> searchInstruments(InstrumentSearch search) {
+        public Optional<InstrumentPage> searchInstruments(InstrumentSearchQuery search) {
             return Optional.ofNullable(page);
         }
 

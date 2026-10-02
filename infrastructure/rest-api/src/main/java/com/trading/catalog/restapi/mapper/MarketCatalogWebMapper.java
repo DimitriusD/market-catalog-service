@@ -1,4 +1,4 @@
-package com.trading.catalog.mapper;
+package com.trading.catalog.restapi.mapper;
 
 import com.trading.catalog.application.domain.model.Asset;
 import com.trading.catalog.application.domain.model.channel.MarketChannel;

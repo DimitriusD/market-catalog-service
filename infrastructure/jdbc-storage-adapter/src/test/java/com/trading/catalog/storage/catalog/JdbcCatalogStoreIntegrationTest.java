@@ -6,7 +6,7 @@ import com.trading.catalog.application.domain.model.channel.ChannelParameter;
 import com.trading.catalog.application.domain.model.channel.ChannelParameterOption;
 import com.trading.catalog.application.domain.model.instrument.Instrument;
 import com.trading.catalog.application.domain.model.instrument.InstrumentPage;
-import com.trading.catalog.application.domain.model.instrument.InstrumentSearch;
+import com.trading.catalog.application.domain.model.instrument.InstrumentSearchQuery;
 import com.trading.catalog.application.domain.model.market.Exchange;
 import com.trading.catalog.application.domain.model.market.Market;
 import org.junit.jupiter.api.Test;
@@ -35,9 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @DataJdbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(CatalogStore.class)
+@Import(JdbcCatalogStore.class)
 @Testcontainers
-class CatalogStoreIntegrationTest {
+class JdbcCatalogStoreIntegrationTest {
 
     private static final List<String> ALL_SPOT_SYMBOLS = List.of(
             "ADAUSDT", "AVAXUSDT", "BNBUSDT", "BTCUSDT", "DOGEUSDT",
@@ -48,7 +48,7 @@ class CatalogStoreIntegrationTest {
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.9");
 
     @Autowired
-    private CatalogStore store;
+    private JdbcCatalogStore store;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -203,7 +203,7 @@ class CatalogStoreIntegrationTest {
 
     @Test
     void searchIsEmptyForUnknownOrUnavailableMarket() {
-        assertTrue(store.searchInstruments(new InstrumentSearch("BINANCE", "FUTURES", null, null, null, null, null)).isEmpty());
+        assertTrue(store.searchInstruments(new InstrumentSearchQuery("BINANCE", "FUTURES", null, null, null, null, null)).isEmpty());
 
         jdbc.update("UPDATE exchange_markets SET enabled = false WHERE code = 'SPOT'");
         assertTrue(store.searchInstruments(search(null, null, null, 50, null)).isEmpty());
@@ -215,8 +215,8 @@ class CatalogStoreIntegrationTest {
 
     @Test
     void searchRejectsMalformedCursor() {
-        assertThrows(ValidationException.class,
-                () -> store.searchInstruments(search(null, null, null, 50, "not-a-cursor")));
+        var query = search(null, null, null, 50, "not-a-cursor");
+        assertThrows(ValidationException.class, () -> store.searchInstruments(query));
     }
 
     // ===== single instrument and channels =====
@@ -245,8 +245,8 @@ class CatalogStoreIntegrationTest {
         assertTrue(store.getMarketChannels("BINANCE", "FUTURES").isEmpty());
     }
 
-    private static InstrumentSearch search(String q, String base, String quote, int limit, String cursor) {
-        return new InstrumentSearch("BINANCE", "SPOT", q, base, quote, limit, cursor);
+    private static InstrumentSearchQuery search(String searchText, String base, String quote, int limit, String cursor) {
+        return new InstrumentSearchQuery("BINANCE", "SPOT", searchText, base, quote, limit, cursor);
     }
 
     private static Market market(Exchange exchange, String code) {

@@ -2,49 +2,29 @@ package com.trading.catalog.storage.catalog;
 
 import com.trading.catalog.application.domain.exception.ValidationException;
 import com.trading.catalog.application.domain.model.Asset;
-import com.trading.catalog.application.domain.model.channel.MarketChannel;
 import com.trading.catalog.application.domain.model.channel.ChannelParameter;
 import com.trading.catalog.application.domain.model.channel.ChannelParameterOption;
+import com.trading.catalog.application.domain.model.channel.MarketChannel;
 import com.trading.catalog.application.domain.model.instrument.Instrument;
 import com.trading.catalog.application.domain.model.instrument.InstrumentPage;
-import com.trading.catalog.application.domain.model.instrument.InstrumentSearch;
+import com.trading.catalog.application.domain.model.instrument.InstrumentSearchQuery;
 import com.trading.catalog.application.domain.model.market.Exchange;
 import com.trading.catalog.application.domain.model.market.Market;
 import com.trading.catalog.application.port.output.CatalogStorePort;
-import com.trading.catalog.storage.entity.AssetEntity;
-import com.trading.catalog.storage.entity.ChannelEntity;
-import com.trading.catalog.storage.entity.ExchangeEntity;
-import com.trading.catalog.storage.entity.ExchangeMarketChannelEntity;
-import com.trading.catalog.storage.entity.ExchangeMarketChannelParamAllowedValueEntity;
-import com.trading.catalog.storage.entity.ExchangeMarketChannelParamEntity;
-import com.trading.catalog.storage.entity.ExchangeMarketEntity;
-import com.trading.catalog.storage.entity.InstrumentEntity;
-import com.trading.catalog.storage.entity.MarketTypeEntity;
-import com.trading.catalog.storage.repository.AssetRepository;
-import com.trading.catalog.storage.repository.ChannelRepository;
-import com.trading.catalog.storage.repository.ExchangeMarketChannelParamAllowedValueRepository;
-import com.trading.catalog.storage.repository.ExchangeMarketChannelParamRepository;
-import com.trading.catalog.storage.repository.ExchangeMarketChannelRepository;
-import com.trading.catalog.storage.repository.ExchangeMarketRepository;
-import com.trading.catalog.storage.repository.ExchangeRepository;
-import com.trading.catalog.storage.repository.InstrumentRepository;
-import com.trading.catalog.storage.repository.MarketTypeRepository;
+import com.trading.catalog.storage.entity.*;
+import com.trading.catalog.storage.repository.*;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Repository
-public class CatalogStore implements CatalogStorePort {
+public class JdbcCatalogStore implements CatalogStorePort {
 
     private static final String SEARCH_INSTRUMENTS = """
             SELECT i.id, i.instrument_id, i.exchange_symbol, i.display_symbol,
@@ -71,31 +51,31 @@ public class CatalogStore implements CatalogStorePort {
     private final ExchangeRepository exchanges;
     private final MarketTypeRepository marketTypes;
     private final ExchangeMarketRepository exchangeMarkets;
-    private final ChannelRepository channels;
+    private final ChannelTypeRepository channelTypes;
     private final ExchangeMarketChannelRepository exchangeMarketChannels;
     private final ExchangeMarketChannelParamRepository channelParams;
-    private final ExchangeMarketChannelParamAllowedValueRepository channelParamValues;
+    private final ChannelParameterOptionRepository channelParameterOptions;
     private final InstrumentRepository instruments;
     private final AssetRepository assets;
     private final NamedParameterJdbcTemplate jdbc;
 
-    public CatalogStore(ExchangeRepository exchanges,
-                        MarketTypeRepository marketTypes,
-                        ExchangeMarketRepository exchangeMarkets,
-                        ChannelRepository channels,
-                        ExchangeMarketChannelRepository exchangeMarketChannels,
-                        ExchangeMarketChannelParamRepository channelParams,
-                        ExchangeMarketChannelParamAllowedValueRepository channelParamValues,
-                        InstrumentRepository instruments,
-                        AssetRepository assets,
-                        NamedParameterJdbcTemplate jdbc) {
+    public JdbcCatalogStore(ExchangeRepository exchanges,
+                            MarketTypeRepository marketTypes,
+                            ExchangeMarketRepository exchangeMarkets,
+                            ChannelTypeRepository channelTypes,
+                            ExchangeMarketChannelRepository exchangeMarketChannels,
+                            ExchangeMarketChannelParamRepository channelParams,
+                            ChannelParameterOptionRepository channelParameterOptions,
+                            InstrumentRepository instruments,
+                            AssetRepository assets,
+                            NamedParameterJdbcTemplate jdbc) {
         this.exchanges = exchanges;
         this.marketTypes = marketTypes;
         this.exchangeMarkets = exchangeMarkets;
-        this.channels = channels;
+        this.channelTypes = channelTypes;
         this.exchangeMarketChannels = exchangeMarketChannels;
         this.channelParams = channelParams;
-        this.channelParamValues = channelParamValues;
+        this.channelParameterOptions = channelParameterOptions;
         this.instruments = instruments;
         this.assets = assets;
         this.jdbc = jdbc;
@@ -105,7 +85,7 @@ public class CatalogStore implements CatalogStorePort {
     @Transactional(readOnly = true)
     public List<Exchange> getAvailableCatalog() {
         Map<Long, MarketTypeEntity> marketTypeById = byId(marketTypes.findAll(), MarketTypeEntity::getId);
-        Map<Long, ChannelEntity> channelById = byId(channels.findAll(), ChannelEntity::getId);
+        Map<Long, ChannelTypeEntity> channelById = byId(channelTypes.findAll(), ChannelTypeEntity::getId);
 
         Map<Long, List<ExchangeMarketEntity>> marketsByExchange = exchangeMarkets.findAll().stream()
                 .filter(ExchangeMarketEntity::isEnabled)
@@ -115,8 +95,8 @@ public class CatalogStore implements CatalogStorePort {
                 .collect(Collectors.groupingBy(ExchangeMarketChannelEntity::getExchangeMarketId));
         Map<Long, List<ExchangeMarketChannelParamEntity>> paramsByChannel = channelParams.findAll().stream()
                 .collect(Collectors.groupingBy(ExchangeMarketChannelParamEntity::getExchangeMarketChannelId));
-        Map<Long, List<ExchangeMarketChannelParamAllowedValueEntity>> valuesByParam = channelParamValues.findAll().stream()
-                .collect(Collectors.groupingBy(ExchangeMarketChannelParamAllowedValueEntity::getChannelParamId));
+        Map<Long, List<ChannelParameterOptionEntity>> valuesByParam = channelParameterOptions.findAll().stream()
+                .collect(Collectors.groupingBy(ChannelParameterOptionEntity::getChannelParamId));
 
         return exchanges.findAll().stream()
                 .filter(ExchangeEntity::isEnabled)
@@ -153,7 +133,7 @@ public class CatalogStore implements CatalogStorePort {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<InstrumentPage> searchInstruments(InstrumentSearch search) {
+    public Optional<InstrumentPage> searchInstruments(InstrumentSearchQuery search) {
         Optional<MarketRef> market = findMarket(search.exchangeCode(), search.marketCode())
                 .filter(MarketRef::available);
         if (market.isEmpty()) {
@@ -165,7 +145,7 @@ public class CatalogStore implements CatalogStorePort {
                 .addValue("marketId", market.get().market().getId())
                 .addValue("baseAssetCode", search.baseAssetCode())
                 .addValue("quoteAssetCode", search.quoteAssetCode())
-                .addValue("pattern", search.q().isEmpty() ? null : "%" + escapeLike(search.q()) + "%")
+                .addValue("pattern", search.searchText().isEmpty() ? null : "%" + escapeLike(search.searchText()) + "%")
                 .addValue("afterSymbol", after == null ? null : after.exchangeSymbol())
                 .addValue("afterId", after == null ? null : after.id())
                 .addValue("limit", search.limit() + 1);
@@ -226,12 +206,12 @@ public class CatalogStore implements CatalogStorePort {
             return List.of();
         }
         boolean marketAvailable = market.get().available();
-        Map<Long, ChannelEntity> channelById = byId(channels.findAll(), ChannelEntity::getId);
+        Map<Long, ChannelTypeEntity> channelById = byId(channelTypes.findAll(), ChannelTypeEntity::getId);
 
         return exchangeMarketChannels.findByExchangeMarketId(market.get().market().getId()).stream()
                 .map(emc -> toMarketChannel(emc, marketAvailable, channelById,
                         channelParams.findByExchangeMarketChannelId(emc.getId()),
-                        channelParamValues::findByChannelParamId))
+                        channelParameterOptions::findByChannelParamId))
                 .sorted(Comparator.comparing(MarketChannel::getCode))
                 .toList();
     }
@@ -244,10 +224,10 @@ public class CatalogStore implements CatalogStorePort {
 
     private static MarketChannel toMarketChannel(ExchangeMarketChannelEntity emc,
                                                  boolean marketAvailable,
-                                                 Map<Long, ChannelEntity> channelById,
+                                                 Map<Long, ChannelTypeEntity> channelById,
                                                  List<ExchangeMarketChannelParamEntity> parameters,
-                                                 Function<Long, List<ExchangeMarketChannelParamAllowedValueEntity>> valuesForParameter) {
-        ChannelEntity channel = channelById.get(emc.getChannelId());
+                                                 Function<Long, List<ChannelParameterOptionEntity>> valuesForParameter) {
+        ChannelTypeEntity channel = channelById.get(emc.getChannelId());
         MarketChannel.MarketChannelBuilder builder = MarketChannel.builder()
                 .code(channel.getCode())
                 .name(channel.getName())
@@ -262,18 +242,18 @@ public class CatalogStore implements CatalogStorePort {
     }
 
     private static ChannelParameter toChannelParameter(ExchangeMarketChannelParamEntity parameter,
-                                                       List<ExchangeMarketChannelParamAllowedValueEntity> values) {
-        List<ExchangeMarketChannelParamAllowedValueEntity> availableValues = values.stream()
-                .filter(ExchangeMarketChannelParamAllowedValueEntity::isEnabled)
-                .sorted(Comparator.comparing(ExchangeMarketChannelParamAllowedValueEntity::getSortOrder))
+                                                       List<ChannelParameterOptionEntity> values) {
+        List<ChannelParameterOptionEntity> availableValues = values.stream()
+                .filter(ChannelParameterOptionEntity::isEnabled)
+                .sorted(Comparator.comparing(ChannelParameterOptionEntity::getSortOrder))
                 .toList();
 
         return ChannelParameter.builder()
                 .key(parameter.getParamKey())
                 .required(parameter.isRequired())
                 .defaultValue(availableValues.stream()
-                        .filter(ExchangeMarketChannelParamAllowedValueEntity::isDefault)
-                        .map(ExchangeMarketChannelParamAllowedValueEntity::getValue)
+                        .filter(ChannelParameterOptionEntity::isDefault)
+                        .map(ChannelParameterOptionEntity::getValue)
                         .findFirst()
                         .orElse(null))
                 .allowedValues(availableValues.stream()
