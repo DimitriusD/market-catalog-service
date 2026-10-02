@@ -77,6 +77,23 @@ docker compose up -d
 ./gradlew :infrastructure:app:bootRun
 ```
 
+Or run the service itself in Docker (image built from `Dockerfile`):
+
+```bash
+docker compose --profile app up -d --build
+```
+
+## Container image
+
+`.github/workflows/ci.yml` runs `./gradlew build`, then builds the image and pushes it to
+`ghcr.io/dimitriusd/market-catalog-service`:
+
+| Trigger | Tags |
+|---|---|
+| push to `master` | `latest`, `sha-<short>` |
+| tag `v1.2.3` | `1.2.3`, `1.2`, `sha-<short>` |
+| pull request | built only, not pushed |
+
 ## Publishing the contract
 
 ```bash

@@ -9,3 +9,22 @@ services:
       POSTGRES_PASSWORD: trading
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trading -d catalog"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    profiles: ["app"]
+    build: .
+    image: market-catalog-service:local
+    container_name: market-catalog-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catalog
+    ports:
+      - "${APP_PORT:-8097}:8097"
