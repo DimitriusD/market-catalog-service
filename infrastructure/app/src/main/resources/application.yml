@@ -1,3 +1,6 @@
+server:
+  port: ${APP_PORT:8097}
+
 management:
   endpoints:
     web:
@@ -5,19 +8,10 @@ management:
         include: "health,info,metrics"
 
 spring:
-  kafka:
-    bootstrap-servers: ${APP_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   datasource:
-    url: ${APP_DB_URL:jdbc:postgresql://localhost:5432/marketcatalogdb}
-    username: ${APP_DB_USERNAME:marketcataloguser}
-    password: ${APP_DB_PASSWORD:marketcatalogpass}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5433}/catalog
+    username: trading
+    password: trading
   flyway:
     enabled: true
-    locations: classpath:db/migrations
-    ignore-migration-patterns: "*:missing,*:future"
-
-app:
-  kafka:
-    topic:
-      item-events: ${APP_KAFKA_TOPIC_ITEM_EVENTS:service.item.events.v1}
+    locations: classpath:db/migration

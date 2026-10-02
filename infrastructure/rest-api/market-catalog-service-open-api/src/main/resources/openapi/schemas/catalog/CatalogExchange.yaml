@@ -1,0 +1,16 @@
+type: object
+required:
+  - code
+  - displayName
+  - markets
+properties:
+  code:
+    type: string
+    example: "BINANCE"
+  displayName:
+    type: string
+    example: "Binance"
+  markets:
+    type: array
+    items:
+      $ref: "./CatalogMarket.yaml"

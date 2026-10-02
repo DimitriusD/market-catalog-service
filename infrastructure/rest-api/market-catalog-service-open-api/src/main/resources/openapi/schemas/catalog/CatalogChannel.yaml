@@ -1,0 +1,16 @@
+type: object
+required:
+  - code
+  - name
+  - params
+properties:
+  code:
+    type: string
+    example: "DEPTH_DIFF"
+  name:
+    type: string
+    example: "Depth Diff"
+  params:
+    type: array
+    items:
+      $ref: "./CatalogChannelParam.yaml"

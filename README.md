@@ -1,156 +1,81 @@
-# Hexagonal Service Template
+# Market Catalog Service
 
-A Spring Boot microservice template following **hexagonal architecture** (ports & adapters) with Gradle multi-module setup.
+Owns the market catalog: exchanges, market types, stream channels with their parameters and allowed
+values, assets and instruments. Serves it over REST to the UI and to `trading-control-service`, which
+resolves instruments and validates stream channels against it.
 
-## Architecture
+Extracted from `trading-control-service` as-is (same API shape, same Flyway migrations).
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    infrastructure/app                            │
-│              (Spring Boot, wiring, composition)                  │
-├──────────┬──────────────────┬──────────────┬────────────────────┤
-│ rest-api │ jdbc-storage-    │ event-       │  (your custom      │
-│ (HTTP    │ adapter          │ adapter      │   adapters...)      │
-│  driving │ (Postgres driven │ (Kafka driven│                    │
-│  adapter)│  adapter)        │  adapter)    │                    │
-├──────────┴──────────────────┴──────────────┴────────────────────┤
-│                        application                               │
-│     domain/model  │  port/input  │  port/output  │  service     │
-│     domain/exception                                             │
-└─────────────────────────────────────────────────────────────────┘
-```
+Hexagonal layout (ports & adapters), Gradle multi-module.
 
-### Modules
+## Modules
 
 | Module | Purpose |
 |--------|---------|
-| `application` | Domain models, input/output ports (interfaces), application services. No framework dependencies. |
-| `infrastructure/app` | Spring Boot entrypoint. Wires ports to adapter implementations via `InfrastructureConfig`. |
-| `infrastructure/rest-api` | HTTP driving adapter. OpenAPI-first code generation + hand-written controllers and MapStruct mappers. |
-| `infrastructure/jdbc-storage-adapter` | PostgreSQL persistence via Spring Data JDBC. Flyway migrations. |
-| `infrastructure/event-adapter` | Kafka event publishing. Implements output ports for domain events. |
+| `application` | Domain models, `MarketCatalogService` / `CatalogStorePort`, `MarketCatalogServiceImpl`. No framework dependencies. |
+| `infrastructure/app` | Spring Boot entrypoint and wiring (`InfrastructureConfig`). |
+| `infrastructure/rest-api` | Controllers and MapStruct mappers over interfaces generated from the contract. |
+| `infrastructure/rest-api/market-catalog-service-open-api` | The OpenAPI contract, published as `com.trading.contracts:market-catalog-service-openapi`. |
+| `infrastructure/jdbc-storage-adapter` | PostgreSQL storage via Spring Data JDBC (`CatalogStore`). Flyway migrations. |
 
-### Key patterns
+## Channel domain model
 
-- **Ports & Adapters**: domain logic in `application` depends on nothing; adapters implement ports
-- **OpenAPI-first**: REST API defined in `openapi.yaml`, interfaces generated at build time
-- **MapStruct**: type-safe mapping between layers (web DTOs <-> domain <-> entities)
-- **Flyway**: versioned database migrations
-- **Version catalog**: all dependency versions centralized in `gradle/libs.versions.toml`
+`domain/model/channel` contains the shared model for both catalog and channel-capability responses:
 
-## Tech Stack
+- `MarketChannel`: a channel supported by an exchange market, with its effective availability and parameters.
+- `ChannelParameter`: a parameter rule with `required`, `defaultValue` and `allowedValues`.
+- `ChannelParameterOption`: an allowed value and its display name.
 
-- Java 21
-- Spring Boot 3.3.x
-- Gradle 9.x (Kotlin DSL)
-- PostgreSQL 17
-- Apache Kafka
-- Flyway
-- MapStruct + Lombok
-- OpenAPI Generator
-- Testcontainers
+The storage adapter assembles this model using the same mapping for both reads. The REST adapter projects it
+into the existing UI and control-service DTOs. `ChannelCapability` is an API representation, not a separate
+domain model. A disabled default is omitted from the available options and produces `defaultValue: null`.
 
-## Quick Start
+## API
 
-### 1. Initialize for your project
+| Method | Path | Consumer |
+|--------|------|----------|
+| `GET` | `/api/v1/catalog` | UI: exchanges → markets (`code` + `marketType`) → channels → param rules (`required`, `defaultValue`, `values`) |
+| `GET` | `/api/v1/instruments?exchangeCode&marketCode&q&baseAssetCode&quoteAssetCode&limit&cursor` | UI: instrument picker; `limit` 1–200 (default 50), pass `nextCursor` back as `cursor` |
+| `GET` | `/api/v1/instruments/{instrumentId}` | control-service: resolve the instrument of a new stream |
+| `GET` | `/api/v1/markets/{exchangeCode}/{marketCode}/channel-capabilities` | control-service: validate stream channels/params |
 
-Run the init script to rename packages and project:
+`instrumentId` contains `|` (`BINANCE|SPOT|BTC|USDT`) and must be URL-encoded in the path (`%7C`).
 
-```powershell
-# PowerShell
-.\init.ps1 -ProjectName "order-service" -Group "com.mycompany" -BasePackage "com.mycompany.orders"
-```
+**Availability.** An exchange, market, channel, param value or instrument is available only when it and everything
+above it are enabled. `/catalog` and instrument search return only available items (search answers 404 for an
+unavailable market); `/instruments/{id}` and `channel-capabilities` return the item with the effective `enabled` flag.
 
-```bash
-# Bash
-./init.sh order-service com.mycompany com.mycompany.orders
-```
+**Markets.** A market has its own `code` (unique per exchange, used in requests) and a `marketType`; several markets
+of one exchange may share a type. Several instruments (contracts) may share the same base/quote pair.
 
-### 2. Start infrastructure
+## Database
+
+Migrations live in `infrastructure/jdbc-storage-adapter/src/main/resources/db/migration/<table>/`
+(schema) and `<table>/data/` (seed data), timestamp-versioned (`V<yyyyMMddHHmmss>__*.sql`). Numeric surrogate
+keys stay; instrument search uses keyset pagination over `(exchange_symbol COLLATE "C", id)`.
+
+## Tests
+
+`./gradlew build` runs unit tests plus Testcontainers integration tests (storage against Flyway-seeded Postgres,
+and the REST API end to end), so Docker must be running.
+
+## Run locally
 
 ```bash
 docker compose up -d
-```
-
-### 3. Build & run
-
-```bash
-./gradlew build
 ./gradlew :infrastructure:app:bootRun
 ```
 
-### 4. Test the API
+## Publishing the contract
 
 ```bash
-# Create an item
-curl -X POST http://localhost:8080/api/v1/items \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Test Item", "description": "A test item"}'
-
-# List items
-curl http://localhost:8080/api/v1/items
-```
-
-## Creating a New Service
-
-1. Copy this template (or use GitHub "Use this template")
-2. Run `init.ps1` / `init.sh` with your project parameters
-3. Replace the sample `Item` domain with your actual domain model
-4. Adjust ports, services, and adapters for your use case
-5. Update `openapi.yaml` with your actual API contract
-6. Modify Flyway migrations for your schema
-7. Add/remove infrastructure adapters as needed
-
-## Project Structure
-
-```
-market-catalog-service/
-├── build.gradle.kts                 # Root build: Java 21, JUnit Platform
-├── settings.gradle.kts              # Module declarations
-├── gradle/libs.versions.toml        # Centralized dependency versions
-├── docker-compose.yml               # Postgres + Kafka + Kafka UI
-├── application/
-│   ├── build.gradle.kts             # java-library, no Spring Boot
-│   └── src/main/java/.../application/
-│       ├── domain/
-│       │   ├── model/Item.java
-│       │   └── exception/
-│       ├── port/
-│       │   ├── input/ItemService.java
-│       │   └── output/ItemStoragePort.java, ItemEventPublisherPort.java
-│       └── service/ItemServiceImpl.java
-├── infrastructure/
-│   ├── app/
-│   │   ├── build.gradle.kts         # Spring Boot plugin, pulls all modules
-│   │   └── src/main/
-│   │       ├── java/.../Application.java, config/InfrastructureConfig.java
-│   │       └── resources/application.yml
-│   ├── rest-api/
-│   │   ├── build.gradle.kts         # OpenAPI Generator plugin
-│   │   └── src/main/
-│   │       ├── java/.../rest/ItemController.java, advice/, mapper/
-│   │       └── resources/openapi/openapi.yaml, schemas/
-│   ├── jdbc-storage-adapter/
-│   │   ├── build.gradle.kts
-│   │   └── src/main/
-│   │       ├── java/.../entity/, repository/, mapper/, storage/
-│   │       └── resources/db/migrations/
-│   └── event-adapter/
-│       ├── build.gradle.kts
-│       └── src/main/java/.../event/
-│           ├── EventAdapterConfig.java
-│           ├── KafkaItemEventPublisher.java
-│           └── ItemEvent.java
-├── init.ps1                          # PowerShell init script
-└── init.sh                           # Bash init script
+./gradlew :infrastructure:rest-api:market-catalog-service-open-api:publishToMavenLocal   # local consumers
+./gradlew :infrastructure:rest-api:market-catalog-service-open-api:publish               # GitHub Packages (gpr.user / gpr.key)
 ```
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `APP_DB_URL` | `jdbc:postgresql://localhost:5432/appdb` | Database URL |
-| `APP_DB_USERNAME` | `appuser` | Database username |
-| `APP_DB_PASSWORD` | `apppass` | Database password |
-| `APP_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
-| `APP_KAFKA_TOPIC_ITEM_EVENTS` | `service.item.events.v1` | Kafka topic for item events |
+| `APP_PORT` | `8097` | HTTP port |
+| `POSTGRES_PORT` | `5433` | Postgres port (`catalog` DB, user/password `trading`) |

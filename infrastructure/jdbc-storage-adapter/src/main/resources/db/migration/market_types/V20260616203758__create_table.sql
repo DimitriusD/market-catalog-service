@@ -1,0 +1,8 @@
+CREATE TABLE market_types
+(
+    id         BIGSERIAL    PRIMARY KEY,
+    code       VARCHAR(32)  NOT NULL UNIQUE,
+    name       VARCHAR(128) NOT NULL,
+    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

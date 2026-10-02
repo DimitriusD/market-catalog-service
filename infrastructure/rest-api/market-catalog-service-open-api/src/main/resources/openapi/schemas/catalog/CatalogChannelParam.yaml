@@ -1,0 +1,20 @@
+type: object
+required:
+  - key
+  - required
+  - values
+properties:
+  key:
+    type: string
+    example: "updateSpeed"
+  required:
+    type: boolean
+  defaultValue:
+    type: string
+    nullable: true
+    description: One of `values`, or null when the param has no available default.
+    example: "100ms"
+  values:
+    type: array
+    items:
+      $ref: "./CatalogParamValue.yaml"

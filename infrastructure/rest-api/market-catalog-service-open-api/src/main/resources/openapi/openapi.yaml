@@ -1,0 +1,186 @@
+openapi: 3.0.3
+info:
+  title: Market Catalog Service API
+  version: 1.0.0
+
+paths:
+  /api/v1/catalog:
+    get:
+      summary: Get the compact catalog used to build the stream form
+      description: |
+        Exchanges, their markets, channels and parameter rules. Only available options are returned:
+        an exchange, market, channel or parameter value is omitted when it, or anything above it, is disabled.
+        Instruments are loaded separately via `GET /api/v1/instruments`.
+      operationId: getCatalog
+      tags:
+        - catalog
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/catalog/Catalog.yaml"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/instruments:
+    get:
+      summary: Search available instruments of a market
+      description: |
+        Returns enabled instruments of an available market, ordered by exchange symbol.
+        Pass `nextCursor` from the previous page as `cursor` to get the next page.
+      operationId: searchInstruments
+      tags:
+        - instruments
+      parameters:
+        - name: exchangeCode
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "BINANCE"
+        - name: marketCode
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "SPOT"
+        - name: q
+          in: query
+          required: false
+          description: Case-insensitive substring of the exchange symbol, display symbol or base asset name.
+          schema:
+            type: string
+            maxLength: 100
+            example: "BTC"
+        - name: baseAssetCode
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "BTC"
+        - name: quoteAssetCode
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "USDT"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor returned as `nextCursor` by the previous page.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/instrument/InstrumentPage.yaml"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/instruments/{instrumentId}:
+    parameters:
+      - $ref: "#/components/parameters/InstrumentId"
+    get:
+      summary: Get an instrument by its canonical id
+      description: "`enabled` is false when the instrument, its market or its exchange is disabled."
+      operationId: getInstrument
+      tags:
+        - instruments
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/instrument/Instrument.yaml"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/markets/{exchangeCode}/{marketCode}/channel-capabilities:
+    parameters:
+      - $ref: "#/components/parameters/ExchangeCode"
+      - $ref: "#/components/parameters/MarketCode"
+    get:
+      summary: Get channel capabilities (required params and enabled allowed values) used to validate stream specs
+      description: |
+        Returns an empty list when the market is not in the catalog. A channel is `enabled` only when
+        the channel, its market and its exchange are enabled.
+      operationId: getChannelCapabilities
+      tags:
+        - markets
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "./schemas/channel/ChannelCapability.yaml"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  parameters:
+    ExchangeCode:
+      name: exchangeCode
+      in: path
+      required: true
+      schema:
+        type: string
+    MarketCode:
+      name: marketCode
+      in: path
+      required: true
+      schema:
+        type: string
+    InstrumentId:
+      name: instrumentId
+      in: path
+      required: true
+      description: Canonical instrument id; `|` must be URL-encoded (`BINANCE%7CSPOT%7CBTC%7CUSDT`).
+      schema:
+        type: string
+        example: "BINANCE|SPOT|BTC|USDT"
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas/error/ErrorResponse.yaml"
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas/error/ErrorResponse.yaml"
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas/error/ErrorResponse.yaml"

@@ -1,0 +1,33 @@
+type: object
+required:
+  - instrumentId
+  - exchangeCode
+  - marketCode
+  - baseAsset
+  - quoteAsset
+  - exchangeSymbol
+  - displaySymbol
+  - enabled
+properties:
+  instrumentId:
+    type: string
+    description: Stable catalog id; pass it to trading-control-service as is.
+    example: "BINANCE|SPOT|BTC|USDT"
+  exchangeCode:
+    type: string
+    example: "BINANCE"
+  marketCode:
+    type: string
+    example: "SPOT"
+  baseAsset:
+    $ref: "../asset/Asset.yaml"
+  quoteAsset:
+    $ref: "../asset/Asset.yaml"
+  exchangeSymbol:
+    type: string
+    example: "BTCUSDT"
+  displaySymbol:
+    type: string
+    example: "BTC/USDT"
+  enabled:
+    type: boolean

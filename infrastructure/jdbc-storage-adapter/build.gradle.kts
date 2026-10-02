@@ -5,23 +5,24 @@ plugins {
 dependencies {
     implementation(platform(libs.springBom))
     implementation(project(":application"))
+
+    implementation("org.springframework:spring-context")
+    implementation("org.springframework.boot:spring-boot")
+    implementation(libs.springBootStarterJdbc)
     implementation(libs.springBootStarterDataJdbc)
-    implementation(libs.flywayCore)
-    implementation(libs.jacksonDatabind)
-    implementation(libs.mapstruct)
-    implementation(libs.postgresql)
+    implementation(libs.springBootStarterFlyway)
+    implementation(libs.flywayDatabasePostgresql)
+
+    runtimeOnly(libs.postgresql)
 
     compileOnly(libs.lombok)
 
     annotationProcessor(libs.lombok)
-    annotationProcessor(libs.mapstructProcessor)
 
-    testImplementation(libs.springBootStarterTest)
-    testImplementation(libs.springBootStarterDataJdbc)
-    testImplementation(platform(libs.testcontainersBom))
+    testImplementation(platform(libs.springBom))
+    testImplementation(libs.springBootStarterDataJdbcTest)
+    testImplementation(libs.springBootTestcontainers)
     testImplementation(libs.testcontainersJunit)
     testImplementation(libs.testcontainersPostgres)
-    testImplementation(libs.flywayDatabasePostgresql)
-
     testRuntimeOnly(libs.junitPlatformLauncher)
 }

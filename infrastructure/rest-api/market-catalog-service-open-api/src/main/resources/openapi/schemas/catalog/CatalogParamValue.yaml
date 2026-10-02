@@ -1,0 +1,11 @@
+type: object
+required:
+  - value
+  - displayName
+properties:
+  value:
+    type: string
+    example: "100ms"
+  displayName:
+    type: string
+    example: "100 ms"

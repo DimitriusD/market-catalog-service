@@ -1,0 +1,12 @@
+type: object
+required:
+  - items
+properties:
+  items:
+    type: array
+    items:
+      $ref: "./Instrument.yaml"
+  nextCursor:
+    type: string
+    nullable: true
+    description: Cursor of the next page; absent or null on the last page.

@@ -1,0 +1,8 @@
+type: object
+required:
+  - exchanges
+properties:
+  exchanges:
+    type: array
+    items:
+      $ref: "./CatalogExchange.yaml"

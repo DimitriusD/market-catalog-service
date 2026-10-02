@@ -1,0 +1,16 @@
+package com.trading.catalog.config;
+
+import com.trading.catalog.application.port.input.MarketCatalogService;
+import com.trading.catalog.application.port.output.CatalogStorePort;
+import com.trading.catalog.application.service.MarketCatalogServiceImpl;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class InfrastructureConfig {
+
+    @Bean
+    public MarketCatalogService marketCatalogService(CatalogStorePort catalogStorePort) {
+        return new MarketCatalogServiceImpl(catalogStorePort);
+    }
+}

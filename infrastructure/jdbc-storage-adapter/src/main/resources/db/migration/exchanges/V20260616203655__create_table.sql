@@ -1,0 +1,9 @@
+CREATE TABLE exchanges
+(
+    id         BIGSERIAL    PRIMARY KEY,
+    code       VARCHAR(32)  NOT NULL UNIQUE,
+    name       VARCHAR(128) NOT NULL,
+    enabled    BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

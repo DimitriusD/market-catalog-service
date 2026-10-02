@@ -1,0 +1,22 @@
+type: object
+required:
+  - code
+  - marketType
+  - displayName
+  - channels
+properties:
+  code:
+    type: string
+    description: Market code, unique within the exchange; used as `marketCode` in other requests.
+    example: "SPOT"
+  marketType:
+    type: string
+    description: Market kind; several markets of one exchange may share it.
+    example: "SPOT"
+  displayName:
+    type: string
+    example: "Spot"
+  channels:
+    type: array
+    items:
+      $ref: "./CatalogChannel.yaml"
