@@ -1,7 +1,7 @@
 # Market Catalog Service
 
 Owns the market catalog: exchanges, market types, stream channels with their parameters and allowed
-values, assets and instruments. Serves it over REST to the UI and to `trading-control-service`, which
+values, assets and instruments. Serves it over REST to `trading-control-service`, the UI backend, which
 resolves instruments and validates stream channels against it.
 
 Extracted from `trading-control-service` as-is (same API shape, same Flyway migrations).
@@ -45,8 +45,8 @@ REST classes live under `com.trading.catalog.restapi`:
 
 | Method | Path | Consumer |
 |--------|------|----------|
-| `GET` | `/api/v1/catalog` | UI: exchanges → markets (`code` + `marketType`) → channels → param rules (`required`, `defaultValue`, `values`) |
-| `GET` | `/api/v1/instruments?exchangeCode&marketCode&searchText&baseAssetCode&quoteAssetCode&limit&cursor` | UI: instrument picker; `limit` 1–200 (default 50), pass `nextCursor` back as `cursor` |
+| `GET` | `/api/v1/catalog` | control-service (BFF for the UI): exchanges → markets (`code` + `marketType`) → channels → param rules (`required`, `defaultValue`, `values`) |
+| `GET` | `/api/v1/instruments?exchangeCode&marketCode&searchText&baseAssetCode&quoteAssetCode&limit&cursor` | control-service (BFF for the UI): instrument picker; `limit` 1–200 (default 50), pass `nextCursor` back as `cursor` |
 | `GET` | `/api/v1/instruments/{instrumentId}` | control-service: resolve the instrument of a new stream |
 | `GET` | `/api/v1/markets/{exchangeCode}/{marketCode}/channel-capabilities` | control-service: validate stream channels/params |
 

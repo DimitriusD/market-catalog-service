@@ -19,6 +19,10 @@ subprojects {
         }
     }
 
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.add("-parameters")
+    }
+
     tasks.withType<Test> {
         useJUnitPlatform()
         systemProperty("user.timezone", "UTC") // same as Application.main; Postgres rejects some JVM zone aliases (Europe/Kiev)
